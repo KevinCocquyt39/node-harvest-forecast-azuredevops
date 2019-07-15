@@ -51,20 +51,22 @@ function getTaskId(taskName) {
     return null;
 }
 
-function archiveTask(taskId) {
-    const body = { is_active: false };
+function archiveTask(task) {
+    console.log("Harvest Task:", `ID ${task.id} - NAME ${task.name} - ACTIVE ${task.is_active} => ARCHIVE`);
 
-    const fetchUpdateOptions = Object.assign(
-        {
-            body: JSON.stringify(body)
-        },
-        harvest_fetchUpdateOptions
-    );
+    // const body = { is_active: false };
 
-    fetch(`https://api.harvestapp.com/v2/tasks/${taskId}`, fetchUpdateOptions)
-        .then(response => response.json())
-        .then(data => console.log("archive result", data))
-        .catch(error => console.error(error));
+    // const fetchUpdateOptions = Object.assign(
+    //     {
+    //         body: JSON.stringify(body)
+    //     },
+    //     harvest_fetchUpdateOptions
+    // );
+
+    // fetch(`https://api.harvestapp.com/v2/tasks/${task.id}`, fetchUpdateOptions)
+    //     .then(response => response.json())
+    //     .then(data => console.log("archive result", data))
+    //     .catch(error => console.error(error));
 }
 
 function tasksFetcher(error, meta, body) {
@@ -101,15 +103,13 @@ function workItemFetcher(error, meta, body) {
         const workItemId = "" + result.id; // make sure this is a string for the find method
         const workItemState = result.fields["System.State"];
 
-        console.log("workitem:", `ID ${workItemId} - STATE ${workItemState}`);
+        console.log("Azure DevOps Workitem:", `ID ${workItemId} - STATE ${workItemState}`);
 
         if (workItemState === "Closed") {
             const task = taskList.find(task => getTaskId(task.name) === workItemId);
 
             if (task) {
-                console.log("task:", `ID ${task.id} - NAME ${task.name} - ACTIVE ${task.is_active} => ARCHIVE`);
-
-                // archiveTask(task.id);
+                archiveTask(task);
             }
         }
     }
