@@ -1,4 +1,6 @@
-const fetch = require("fetch");
+const nodeFetch = require("node-fetch");
+const fs = require("fs");
+const util = require("util");
 
 const harvest_accessToken =
     "1628880.pt.wQxRuz6IHw4OxHpOU4gW9eZtZ3RaVU0E4WOIRkklwLOb5KqGJcRnrgxgpmjCfoORebFrp7d4jSWkL0k3RmojUw";
@@ -11,7 +13,7 @@ const azureDevOps_username = "kevin_cocquyt@outlook.com";
 const azureDevOps_pat = "wgubsfqcbov466fk3pn626qcy7revjghsk7iqdh2mejql2bkmg6q";
 const azureDevOps_token = Buffer.from(`${azureDevOps_username}:${azureDevOps_pat}`).toString("base64");
 
-let taskList = [];
+const logFile = fs.createWriteStream("log.txt", { flags: "w" });
 
 const harvest_fetchOptions = {
     headers: {
@@ -24,8 +26,8 @@ const harvest_fetchOptions = {
 
 const harvest_fetchUpdateOptions = {
     method: "PUT",
-    "Content-Type": "application/json",
     headers: {
+        "Content-Type": "application/json",
         Accept: "application/json",
         Authorization: `Bearer ${harvest_accessToken}`,
         "Harvest-Account-Id": harvest_accountId,
@@ -40,6 +42,10 @@ const azureDevOps_fetchOptions = {
     }
 };
 
+/**
+ * Get Harvest Task identifier from its name, using a regular expression.
+ * @param {*} taskName The Harvest Task name.
+ */
 function getTaskId(taskName) {
     var regex = new RegExp(/.*\|.*\|(?<taskId>\d+)/g);
     var matches = regex.exec(taskName);
@@ -51,62 +57,56 @@ function getTaskId(taskName) {
     return null;
 }
 
+/**
+ * Archive a Harvest Task.
+ * @param {*} task The Harvest Task.
+ */
 function archiveTask(task) {
-    console.log("Harvest Task:", `ID ${task.id} - NAME ${task.name} - ACTIVE ${task.is_active} => ARCHIVE`);
-
-    // const body = { is_active: false };
-
-    // const fetchUpdateOptions = Object.assign(
-    //     {
-    //         body: JSON.stringify(body)
-    //     },
-    //     harvest_fetchUpdateOptions
-    // );
-
-    // fetch(`https://api.harvestapp.com/v2/tasks/${task.id}`, fetchUpdateOptions)
-    //     .then(response => response.json())
-    //     .then(data => console.log("archive result", data))
-    //     .catch(error => console.error(error));
+    console.log("Harvest Task:", `ID ${task.id} - NAME ${task.name} - ACTIVE ${task.is_active}...`);
+    // archiveTaskById(task.id);
 }
 
-function tasksFetcher(error, meta, body) {
-    const result = JSON.parse(body.toString());
-    // console.log("tasks", result);
+/**
+ * Archive a Harvest Task by the identifier.
+ * @param {*} taskId The Harvest Task identifier.
+ */
+function archiveTaskById(taskId) {
+    const body = { is_active: false };
 
-    if (result.next_page > result.page) {
-        fetch.fetchUrl(
-            `https://api.harvestapp.com/v2/tasks?is_active=true&page=${result.next_page}`,
-            harvest_fetchOptions,
-            tasksFetcher
-        );
-    }
+    const fetchUpdateOptions = Object.assign(
+        {
+            body: JSON.stringify(body)
+        },
+        harvest_fetchUpdateOptions
+    );
 
-    taskList = [taskList, ...result.tasks];
-
-    for (task of taskList) {
-        const taskId = getTaskId(task.name);
-
-        if (taskId) {
-            fetch.fetchUrl(
-                `https://dev.azure.com/${azureDevOps_organizationName}/${azureDevOps_projectName}/_apis/wit/workitems/${taskId}?api-version=5.0`,
-                azureDevOps_fetchOptions,
-                workItemFetcher
-            );
-        }
-    }
+    nodeFetch(`https://api.harvestapp.com/v2/tasks/${taskId}`, fetchUpdateOptions)
+        .then(response => response.json())
+        .then(data => console.log("Harvest Task: ARCHIVED =>", data))
+        .catch(error => console.error(error));
 }
 
-function workItemFetcher(error, meta, body) {
-    const result = JSON.parse(body.toString());
+/**
+ * Overriding of console.log so the logging is written to a text-file.
+ */
+console.log = function() {
+    logFile.write(util.format.apply(null, arguments) + "\n");
+};
 
+/**
+ * Handle the fetch of Azure DevOps Work Items.
+ * @param {*} result The results of the fetch.
+ * @param {*} tasks The list of current tasks, used to retrieve 1 specific task to be archived.
+ */
+function handleWorkItems(result, tasks) {
     if (typeof result.fields !== "undefined") {
         const workItemId = "" + result.id; // make sure this is a string for the find method
         const workItemState = result.fields["System.State"];
 
-        console.log("Azure DevOps Workitem:", `ID ${workItemId} - STATE ${workItemState}`);
+        console.log("Azure DevOps Work Item:", `ID ${workItemId} - STATE ${workItemState}...`);
 
         if (workItemState === "Closed") {
-            const task = taskList.find(task => getTaskId(task.name) === workItemId);
+            const task = tasks.find(task => getTaskId(task.name) === workItemId);
 
             if (task) {
                 archiveTask(task);
@@ -115,4 +115,34 @@ function workItemFetcher(error, meta, body) {
     }
 }
 
-fetch.fetchUrl(`https://api.harvestapp.com/v2/tasks?is_active=true`, harvest_fetchOptions, tasksFetcher);
+/**
+ * Handle the fetch of Harvest Tasks.
+ * @param {*} result The results of the fetch.
+ */
+function handleTasks(result) {
+    for (task of result.tasks) {
+        const taskId = getTaskId(task.name);
+
+        if (taskId) {
+            nodeFetch(
+                `https://dev.azure.com/${azureDevOps_organizationName}/${azureDevOps_projectName}/_apis/wit/workitems/${taskId}?api-version=5.0`,
+                azureDevOps_fetchOptions
+            )
+                .then(response => response.json())
+                .then(data => handleWorkItems(data, result.tasks))
+                .catch(error => console.error(error));
+        }
+    }
+
+    if (result.next_page > result.page) {
+        nodeFetch(`https://api.harvestapp.com/v2/tasks?is_active=true&page=${result.next_page}`, harvest_fetchOptions)
+            .then(response => response.json())
+            .then(data => handleTasks(data))
+            .catch(error => console.error(error));
+    }
+}
+
+nodeFetch(`https://api.harvestapp.com/v2/tasks?is_active=true`, harvest_fetchOptions)
+    .then(response => response.json())
+    .then(data => handleTasks(data))
+    .catch(error => console.error(error));

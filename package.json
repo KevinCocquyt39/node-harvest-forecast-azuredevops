@@ -1,0 +1,25 @@
+{
+  "name": "harvest-forecast-node",
+  "version": "1.0.0",
+  "description": "",
+  "main": "get-azuredevops-data.js",
+  "dependencies": {
+    "fetch": "^1.1.0",
+    "forecast-promise": "^1.2.1",
+    "node-fetch": "^2.6.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KevinCocquyt39/node-harvest-forecast-azuredevops.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/KevinCocquyt39/node-harvest-forecast-azuredevops/issues"
+  },
+  "homepage": "https://github.com/KevinCocquyt39/node-harvest-forecast-azuredevops#readme"
+}
