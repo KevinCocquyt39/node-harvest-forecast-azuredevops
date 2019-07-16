@@ -15,7 +15,7 @@ const azureDevOps_token = Buffer.from(`${azureDevOps_username}:${azureDevOps_pat
 
 const logFile = fs.createWriteStream("log.txt", { flags: "w" });
 
-const excludeProjectList = ["SCHAC"];
+const excludeProjectList = ["FLORE", "SCHAC"];
 
 const harvest_fetchOptions = {
     headers: {
@@ -81,7 +81,7 @@ function getTaskProjectName(taskName) {
  */
 function archiveTask(task) {
     const projectName = getTaskProjectName(task.name);
-    const logValue = `ID ${task.id} - NAME ${task.name} - PROJECT ${projectName} - ACTIVE ${task.is_active}`;
+    const logValue = `ID ${task.id} - PROJECT ${projectName} - NAME ${task.name} - ACTIVE ${task.is_active}`;
 
     if (excludeProjectList.includes(projectName)) {
         console.log("Harvest Task:", `${logValue} => SKIPPED`);
@@ -89,7 +89,7 @@ function archiveTask(task) {
     }
 
     console.log("Harvest Task:", `${logValue} => ARCHIVING...`);
-    // archiveTaskById(task.id, logValue);
+    archiveTaskById(task.id, logValue);
 }
 
 /**
