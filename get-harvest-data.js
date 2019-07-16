@@ -15,6 +15,8 @@ const azureDevOps_token = Buffer.from(`${azureDevOps_username}:${azureDevOps_pat
 
 const logFile = fs.createWriteStream("log.txt", { flags: "w" });
 
+const excludeProjectList = ["SCHAC"];
+
 const harvest_fetchOptions = {
     headers: {
         Accept: "application/json",
@@ -43,10 +45,14 @@ const azureDevOps_fetchOptions = {
 };
 
 /**
- * Get Harvest Task identifier from its name, using a regular expression.
- * @param {*} taskName The Harvest Task name.
+ * Gets Harvest Task identifier from its full name, using a regular expression.
+ * @param {String} taskName The Harvest Task name.
  */
 function getTaskId(taskName) {
+    if (!taskName) {
+        return "";
+    }
+
     var regex = new RegExp(/.*\|.*\|(?<taskId>\d+)/g);
     var matches = regex.exec(taskName);
 
@@ -58,19 +64,40 @@ function getTaskId(taskName) {
 }
 
 /**
+ * Get Harvest Task project name from its full name, using a substring.
+ * @param {String} taskName The Harvest Task name.
+ */
+function getTaskProjectName(taskName) {
+    if (!taskName) {
+        return "";
+    }
+
+    return taskName.substring(0, 5);
+}
+
+/**
  * Archive a Harvest Task.
- * @param {*} task The Harvest Task.
+ * @param {Object} task The Harvest Task.
  */
 function archiveTask(task) {
-    console.log("Harvest Task:", `ID ${task.id} - NAME ${task.name} - ACTIVE ${task.is_active}...`);
-    // archiveTaskById(task.id);
+    const projectName = getTaskProjectName(task.name);
+    const logValue = `ID ${task.id} - NAME ${task.name} - PROJECT ${projectName} - ACTIVE ${task.is_active}`;
+
+    if (excludeProjectList.includes(projectName)) {
+        console.log("Harvest Task:", `${logValue} => SKIPPED`);
+        return;
+    }
+
+    console.log("Harvest Task:", `${logValue} => ARCHIVING...`);
+    // archiveTaskById(task.id, logValue);
 }
 
 /**
  * Archive a Harvest Task by the identifier.
- * @param {*} taskId The Harvest Task identifier.
+ * @param {Number} taskId The Harvest Task identifier.
+ * @param {String} logValue The Harvest Task identifier.
  */
-function archiveTaskById(taskId) {
+function archiveTaskById(taskId, logValue) {
     const body = { is_active: false };
 
     const fetchUpdateOptions = Object.assign(
@@ -82,7 +109,7 @@ function archiveTaskById(taskId) {
 
     nodeFetch(`https://api.harvestapp.com/v2/tasks/${taskId}`, fetchUpdateOptions)
         .then(response => response.json())
-        .then(data => console.log("Harvest Task: ARCHIVED =>", data))
+        .then(data => console.log("Harvest Task:", `${logValue} => ARCHIVED (result: ${JSON.stringify(data)})`))
         .catch(error => console.error(error));
 }
 
@@ -94,9 +121,16 @@ console.log = function() {
 };
 
 /**
+ * Overriding of console.error so the logging is written to a text-file.
+ */
+console.error = function() {
+    logFile.write(util.format.apply(null, arguments) + "\n");
+};
+
+/**
  * Handle the fetch of Azure DevOps Work Items.
- * @param {*} result The results of the fetch.
- * @param {*} tasks The list of current tasks, used to retrieve 1 specific task to be archived.
+ * @param {Object} result The results of the fetch.
+ * @param {Array} tasks The list of current tasks, used to retrieve 1 specific task to be archived.
  */
 function handleWorkItems(result, tasks) {
     if (typeof result.fields !== "undefined") {
@@ -117,7 +151,7 @@ function handleWorkItems(result, tasks) {
 
 /**
  * Handle the fetch of Harvest Tasks.
- * @param {*} result The results of the fetch.
+ * @param {Object} result The results of the fetch.
  */
 function handleTasks(result) {
     for (task of result.tasks) {
