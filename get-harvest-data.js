@@ -2,27 +2,24 @@ const nodeFetch = require("node-fetch");
 const fs = require("fs");
 const util = require("util");
 
-const harvest_accessToken =
+const HARVEST_ACCESSTOKEN =
     "1628880.pt.wQxRuz6IHw4OxHpOU4gW9eZtZ3RaVU0E4WOIRkklwLOb5KqGJcRnrgxgpmjCfoORebFrp7d4jSWkL0k3RmojUw";
-const harvest_accountId = "949062";
-const harvest_userAgent = "get-harvest-data (kevin.cocquyt@natcheurope.com)";
-
-const azureDevOps_organizationName = "natch";
-const azureDevOps_projectName = "natch";
-const azureDevOps_username = "kevin_cocquyt@outlook.com";
-const azureDevOps_pat = "wgubsfqcbov466fk3pn626qcy7revjghsk7iqdh2mejql2bkmg6q";
-const azureDevOps_token = Buffer.from(`${azureDevOps_username}:${azureDevOps_pat}`).toString("base64");
+const HARVEST_ACCOUNTID = "949062";
+const HARVEST_USERAGENT = "get-harvest-data (kevin.cocquyt@natcheurope.com)";
+const AZUREDEVOPS_ORGANIZATIONNAME = "natch";
+const AZUREDEVOPS_PROJECTNAME = "natch";
+const AZUREDEVOPS_USERNAME = "kevin_cocquyt@outlook.com";
+const AZUREDEVOPS_PAT = "wgubsfqcbov466fk3pn626qcy7revjghsk7iqdh2mejql2bkmg6q";
 
 const logFile = fs.createWriteStream("log.txt", { flags: "w" });
-
-const excludeProjectList = ["FLORE", "SCHAC"];
+const excludeProjectList = ["FLORE", "OUTIL", "SCHAC"];
 
 const harvest_fetchOptions = {
     headers: {
         Accept: "application/json",
-        Authorization: `Bearer ${harvest_accessToken}`,
-        "Harvest-Account-Id": harvest_accountId,
-        "User-Agent": harvest_userAgent
+        Authorization: `Bearer ${HARVEST_ACCESSTOKEN}`,
+        "Harvest-Account-Id": HARVEST_ACCOUNTID,
+        "User-Agent": HARVEST_USERAGENT
     }
 };
 
@@ -31,16 +28,16 @@ const harvest_fetchUpdateOptions = {
     headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        Authorization: `Bearer ${harvest_accessToken}`,
-        "Harvest-Account-Id": harvest_accountId,
-        "User-Agent": harvest_userAgent
+        Authorization: `Bearer ${HARVEST_ACCESSTOKEN}`,
+        "Harvest-Account-Id": HARVEST_ACCOUNTID,
+        "User-Agent": HARVEST_USERAGENT
     }
 };
 
 const azureDevOps_fetchOptions = {
     headers: {
         Accept: "application/json",
-        Authorization: `Basic ${azureDevOps_token}`
+        Authorization: `Basic ${Buffer.from(`${AZUREDEVOPS_USERNAME}:${AZUREDEVOPS_PAT}`).toString("base64")}`
     }
 };
 
@@ -159,7 +156,7 @@ function handleTasks(result) {
 
         if (taskId) {
             nodeFetch(
-                `https://dev.azure.com/${azureDevOps_organizationName}/${azureDevOps_projectName}/_apis/wit/workitems/${taskId}?api-version=5.0`,
+                `https://dev.azure.com/${AZUREDEVOPS_ORGANIZATIONNAME}/${AZUREDEVOPS_PROJECTNAME}/_apis/wit/workitems/${taskId}?api-version=5.0`,
                 azureDevOps_fetchOptions
             )
                 .then(response => response.json())
