@@ -64,7 +64,7 @@ function getTaskId(taskName) {
         return "";
     }
 
-    var regex = new RegExp(/.*\|.*\|(?<taskId>\d+)/g);
+    var regex = new RegExp(/.*\|.*\|(\d+)/g);
     var matches = regex.exec(taskName);
 
     if (matches) {
