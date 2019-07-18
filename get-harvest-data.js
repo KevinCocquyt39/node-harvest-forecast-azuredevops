@@ -12,7 +12,7 @@ const AZUREDEVOPS_USERNAME = "kevin_cocquyt@outlook.com";
 const AZUREDEVOPS_PAT = "wgubsfqcbov466fk3pn626qcy7revjghsk7iqdh2mejql2bkmg6q";
 
 const logFile = fs.createWriteStream("log.txt", { flags: "w" });
-const excludeProjectList = ["FLORE", "OUTIL", "SCHAC"];
+const includeProjectList = ["PGBEU", "STONE"]; // ["FLORE", "OUTIL", "SCHAC"];
 
 const harvest_fetchOptions = {
     headers: {
@@ -80,7 +80,7 @@ function archiveTask(task) {
     const projectName = getTaskProjectName(task.name);
     const logValue = `ID ${task.id} - PROJECT ${projectName} - NAME ${task.name} - ACTIVE ${task.is_active}`;
 
-    if (excludeProjectList.includes(projectName)) {
+    if (includeProjectList.includes(projectName) === false) {
         console.log("Harvest Task:", `${logValue} => SKIPPED`);
         return;
     }
