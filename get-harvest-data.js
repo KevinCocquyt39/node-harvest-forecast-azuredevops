@@ -42,6 +42,20 @@ const azureDevOps_fetchOptions = {
 };
 
 /**
+ * Overriding of console.log so the logging is written to a text-file.
+ */
+console.log = function() {
+    logFile.write(util.format.apply(null, arguments) + "\n");
+};
+
+/**
+ * Overriding of console.error so the logging is written to a text-file.
+ */
+console.error = function() {
+    logFile.write(util.format.apply(null, arguments) + "\n");
+};
+
+/**
  * Gets Harvest Task identifier from its full name, using a regular expression.
  * @param {String} taskName The Harvest Task name.
  */
@@ -73,23 +87,6 @@ function getTaskProjectName(taskName) {
 }
 
 /**
- * Archive a Harvest Task.
- * @param {Object} task The Harvest Task.
- */
-function archiveTask(task) {
-    const projectName = getTaskProjectName(task.name);
-    const logValue = `ID ${task.id} - PROJECT ${projectName} - NAME ${task.name} - ACTIVE ${task.is_active}`;
-
-    if (includeProjectList.includes(projectName) === false) {
-        console.log("Harvest Task:", `${logValue} => SKIPPED`);
-        return;
-    }
-
-    console.log("Harvest Task:", `${logValue} => ARCHIVING...`);
-    archiveTaskById(task.id, logValue);
-}
-
-/**
  * Archive a Harvest Task by the identifier.
  * @param {Number} taskId The Harvest Task identifier.
  * @param {String} logValue The Harvest Task identifier.
@@ -111,18 +108,21 @@ function archiveTaskById(taskId, logValue) {
 }
 
 /**
- * Overriding of console.log so the logging is written to a text-file.
+ * Archive a Harvest Task.
+ * @param {Object} task The Harvest Task.
  */
-console.log = function() {
-    logFile.write(util.format.apply(null, arguments) + "\n");
-};
+function archiveTask(task) {
+    const projectName = getTaskProjectName(task.name);
+    const logValue = `ID ${task.id} - PROJECT ${projectName} - NAME ${task.name} - ACTIVE ${task.is_active}`;
 
-/**
- * Overriding of console.error so the logging is written to a text-file.
- */
-console.error = function() {
-    logFile.write(util.format.apply(null, arguments) + "\n");
-};
+    if (includeProjectList.includes(projectName) === false) {
+        console.log("Harvest Task:", `${logValue} => SKIPPED`);
+        return;
+    }
+
+    console.log("Harvest Task:", `${logValue} => ARCHIVING...`);
+    // archiveTaskById(task.id, logValue);
+}
 
 /**
  * Handle the fetch of Azure DevOps Work Items.
