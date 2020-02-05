@@ -12,15 +12,15 @@ const AZUREDEVOPS_USERNAME = "kevin_cocquyt@outlook.com";
 const AZUREDEVOPS_PAT = "wgubsfqcbov466fk3pn626qcy7revjghsk7iqdh2mejql2bkmg6q";
 
 const logFile = fs.createWriteStream("log.txt", { flags: "w" });
-const includeProjectList = ["PGBEU", "STONE"]; // ["FLORE", "OUTIL", "SCHAC"];
+const includeProjectList = ["APOKD", "ALLIN", "CEBEO", "FLORE", "GRAND", "HOGEN", "OUTIL", "PGBEU", "SCHAC", "STONE"];
 
 const harvest_fetchOptions = {
     headers: {
         Accept: "application/json",
         Authorization: `Bearer ${HARVEST_ACCESSTOKEN}`,
         "Harvest-Account-Id": HARVEST_ACCOUNTID,
-        "User-Agent": HARVEST_USERAGENT
-    }
+        "User-Agent": HARVEST_USERAGENT,
+    },
 };
 
 const harvest_fetchUpdateOptions = {
@@ -30,15 +30,15 @@ const harvest_fetchUpdateOptions = {
         Accept: "application/json",
         Authorization: `Bearer ${HARVEST_ACCESSTOKEN}`,
         "Harvest-Account-Id": HARVEST_ACCOUNTID,
-        "User-Agent": HARVEST_USERAGENT
-    }
+        "User-Agent": HARVEST_USERAGENT,
+    },
 };
 
 const azureDevOps_fetchOptions = {
     headers: {
         Accept: "application/json",
-        Authorization: `Basic ${Buffer.from(`${AZUREDEVOPS_USERNAME}:${AZUREDEVOPS_PAT}`).toString("base64")}`
-    }
+        Authorization: `Basic ${Buffer.from(`${AZUREDEVOPS_USERNAME}:${AZUREDEVOPS_PAT}`).toString("base64")}`,
+    },
 };
 
 /**
@@ -96,9 +96,9 @@ function archiveTaskById(taskId, logValue) {
 
     const fetchUpdateOptions = Object.assign(
         {
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
         },
-        harvest_fetchUpdateOptions
+        harvest_fetchUpdateOptions,
     );
 
     nodeFetch(`https://api.harvestapp.com/v2/tasks/${taskId}`, fetchUpdateOptions)
@@ -121,7 +121,7 @@ function archiveTask(task) {
     }
 
     console.log("Harvest Task:", `${logValue} => ARCHIVING...`);
-    // archiveTaskById(task.id, logValue);
+    archiveTaskById(task.id, logValue);
 }
 
 /**
@@ -157,7 +157,7 @@ function handleTasks(result) {
         if (taskId) {
             nodeFetch(
                 `https://dev.azure.com/${AZUREDEVOPS_ORGANIZATIONNAME}/${AZUREDEVOPS_PROJECTNAME}/_apis/wit/workitems/${taskId}?api-version=5.0`,
-                azureDevOps_fetchOptions
+                azureDevOps_fetchOptions,
             )
                 .then(response => response.json())
                 .then(data => handleWorkItems(data, result.tasks))
